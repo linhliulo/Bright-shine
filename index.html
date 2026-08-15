@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Tủ Đồ — Quản lý tủ quần áo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<div class="app">
+
+  <!-- Thanh treo đồ điều hướng -->
+  <nav class="rail">
+    <div class="rail-brand">
+      <span class="rail-brand-mark">⌂</span>
+      <span class="rail-brand-text">TỦ ĐỒ</span>
+    </div>
+    <div class="rail-rod"></div>
+    <button class="rail-tab is-active" data-view="wardrobe">
+      <span class="tab-hook"></span>Tủ đồ
+    </button>
+    <button class="rail-tab" data-view="outfit">
+      <span class="tab-hook"></span>Phối đồ
+    </button>
+    <button class="rail-tab" data-view="history">
+      <span class="tab-hook"></span>Lịch sử
+    </button>
+    <button class="rail-tab" data-view="reports">
+      <span class="tab-hook"></span>Báo cáo
+    </button>
+    <div class="rail-footer">
+      <button class="ghost-btn" id="btn-export">Xuất dữ liệu</button>
+      <label class="ghost-btn" for="import-file">Nhập dữ liệu</label>
+      <input type="file" id="import-file" accept="application/json" hidden />
+    </div>
+  </nav>
+
+  <main class="stage">
+
+    <!-- VIEW: TỦ ĐỒ -->
+    <section class="view is-active" id="view-wardrobe">
+      <header class="view-head">
+        <div>
+          <p class="eyebrow">Bộ sưu tập của bạn</p>
+          <h1>Tủ đồ</h1>
+        </div>
+        <button class="btn-primary" id="btn-add-item">+ Thêm món đồ</button>
+      </header>
+
+      <div class="filter-row" id="wardrobe-filters"></div>
+
+      <div class="tag-grid" id="wardrobe-grid"></div>
+      <p class="empty-note" id="wardrobe-empty" hidden>Chưa có món đồ nào. Bấm "+ Thêm món đồ" để bắt đầu treo đồ lên tủ.</p>
+    </section>
+
+    <!-- VIEW: PHỐI ĐỒ -->
+    <section class="view" id="view-outfit">
+      <header class="view-head">
+        <div>
+          <p class="eyebrow">Hôm nay mặc gì?</p>
+          <h1>Phối đồ</h1>
+        </div>
+      </header>
+
+      <div class="outfit-controls card">
+        <div class="field">
+          <label>Mùa</label>
+          <select id="filter-season">
+            <option value="">Bất kỳ</option>
+            <option value="xuân">Xuân</option>
+            <option value="hạ">Hạ</option>
+            <option value="thu">Thu</option>
+            <option value="đông">Đông</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Dịp</label>
+          <select id="filter-occasion">
+            <option value="">Bất kỳ</option>
+            <option value="đi làm">Đi làm</option>
+            <option value="đi chơi">Đi chơi</option>
+            <option value="dự tiệc">Dự tiệc</option>
+            <option value="ở nhà">Ở nhà</option>
+            <option value="thể thao">Thể thao</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Màu chủ đạo</label>
+          <input type="text" id="filter-color" placeholder="vd: đen, trắng…" />
+        </div>
+        <button class="btn-primary" id="btn-generate-outfit">Gợi ý phối đồ</button>
+      </div>
+
+      <div id="outfit-result"></div>
+    </section>
+
+    <!-- VIEW: LỊCH SỬ -->
+    <section class="view" id="view-history">
+      <header class="view-head">
+        <div>
+          <p class="eyebrow">Nhật ký mặc đồ</p>
+          <h1>Lịch sử</h1>
+        </div>
+      </header>
+      <div class="history-list" id="history-list"></div>
+      <p class="empty-note" id="history-empty" hidden>Chưa có lượt mặc đồ nào được ghi lại. Hãy chọn một bộ ở tab "Phối đồ".</p>
+    </section>
+
+    <!-- VIEW: BÁO CÁO -->
+    <section class="view" id="view-reports">
+      <header class="view-head">
+        <div>
+          <p class="eyebrow">Thống kê sử dụng</p>
+          <h1>Báo cáo</h1>
+        </div>
+      </header>
+
+      <div class="report-grid">
+        <div class="card">
+          <h2>Tần suất được chọn mặc</h2>
+          <div id="freq-chart" class="freq-chart"></div>
+          <p class="empty-note" id="freq-empty" hidden>Chưa có dữ liệu.</p>
+        </div>
+        <div class="card">
+          <h2>Đề xuất thanh lý</h2>
+          <p class="hint">Đồ đã thêm ≥ 30 ngày nhưng mặc ≤ 1 lần, hoặc chưa mặc trong 90 ngày qua.</p>
+          <div id="liquidate-list" class="liquidate-list"></div>
+          <p class="empty-note" id="liquidate-empty" hidden>Không có món nào cần thanh lý — tủ đồ đang được dùng tốt!</p>
+        </div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<!-- MODAL: thêm/sửa món đồ -->
+<div class="modal-backdrop" id="item-modal-backdrop" hidden>
+  <div class="modal">
+    <div class="modal-head">
+      <h2 id="item-modal-title">Thêm món đồ</h2>
+      <button class="icon-btn" id="btn-close-modal">✕</button>
+    </div>
+    <form id="item-form">
+      <input type="hidden" id="item-id" />
+      <div class="form-grid">
+        <div class="field span-2">
+          <label>Tên món đồ *</label>
+          <input type="text" id="item-name" required placeholder="vd: Áo sơ mi trắng linen" />
+        </div>
+        <div class="field">
+          <label>Danh mục *</label>
+          <select id="item-category" required>
+            <option value="áo">Áo</option>
+            <option value="quần">Quần</option>
+            <option value="váy/đầm">Váy/Đầm</option>
+            <option value="áo khoác">Áo khoác</option>
+            <option value="giày">Giày</option>
+            <option value="phụ kiện">Phụ kiện</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Thương hiệu</label>
+          <input type="text" id="item-brand" placeholder="vd: Uniqlo" />
+        </div>
+        <div class="field">
+          <label>Kích cỡ</label>
+          <input type="text" id="item-size" placeholder="vd: M, 29, 40…" />
+        </div>
+        <div class="field">
+          <label>Giá đã mua (₫)</label>
+          <input type="number" id="item-price" min="0" placeholder="vd: 350000" />
+        </div>
+        <div class="field">
+          <label>Màu chủ đạo</label>
+          <input type="text" id="item-color" placeholder="vd: trắng" />
+        </div>
+        <div class="field">
+          <label>Mùa phù hợp</label>
+          <select id="item-season">
+            <option value="tất cả">Tất cả các mùa</option>
+            <option value="xuân">Xuân</option>
+            <option value="hạ">Hạ</option>
+            <option value="thu">Thu</option>
+            <option value="đông">Đông</option>
+          </select>
+        </div>
+        <div class="field span-2">
+          <label>Dịp phù hợp</label>
+          <div class="chip-select" id="item-occasions">
+            <label class="chip"><input type="checkbox" value="đi làm" /><span>Đi làm</span></label>
+            <label class="chip"><input type="checkbox" value="đi chơi" /><span>Đi chơi</span></label>
+            <label class="chip"><input type="checkbox" value="dự tiệc" /><span>Dự tiệc</span></label>
+            <label class="chip"><input type="checkbox" value="ở nhà" /><span>Ở nhà</span></label>
+            <label class="chip"><input type="checkbox" value="thể thao" /><span>Thể thao</span></label>
+          </div>
+        </div>
+        <div class="field span-2">
+          <label>Ảnh (link URL, tùy chọn)</label>
+          <input type="url" id="item-image" placeholder="https://…" />
+        </div>
+        <div class="field span-2">
+          <label>Ghi chú</label>
+          <textarea id="item-notes" rows="2" placeholder="vd: quà tặng, cần ủi trước khi mặc…"></textarea>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn-danger" id="btn-delete-item" hidden>Xóa món đồ</button>
+        <div class="modal-actions-right">
+          <button type="button" class="btn-secondary" id="btn-cancel-modal">Hủy</button>
+          <button type="submit" class="btn-primary">Lưu</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="app.js"></script>
+</body>
+</html>
