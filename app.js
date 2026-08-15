@@ -8,8 +8,10 @@ const STORAGE_ITEMS = "tuquanao_items_v1";
 const STORAGE_HISTORY = "tuquanao_history_v1";
 
 const CATEGORY_LABEL = {
-  "áo": "Áo",
+  "áo thun": "Áo thun",
+  "áo sơ mi": "Áo sơ mi",
   "quần": "Quần",
+  "chân váy": "Chân váy",
   "váy/đầm": "Váy/Đầm",
   "áo khoác": "Áo khoác",
   "giày": "Giày",
@@ -254,8 +256,8 @@ function generateOutfit() {
   const pool = items.filter(matches);
 
   const dresses = pool.filter((i) => i.category === "váy/đầm");
-  const tops = pool.filter((i) => i.category === "áo");
-  const bottoms = pool.filter((i) => i.category === "quần");
+  const tops = pool.filter((i) => i.category === "áo thun" || i.category === "áo sơ mi");
+  const bottoms = pool.filter((i) => i.category === "quần" || i.category === "chân váy");
   const shoes = pool.filter((i) => i.category === "giày");
   const outerwear = pool.filter((i) => i.category === "áo khoác");
   const accessories = pool.filter((i) => i.category === "phụ kiện");
