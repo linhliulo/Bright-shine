@@ -82,6 +82,36 @@ function switchView(view) {
    WARDROBE VIEW
    ========================================================== */
 let activeCategoryFilter = "";
+let activeSortOption = "";
+
+document.getElementById("wardrobe-sort").addEventListener("change", (e) => {
+  activeSortOption = e.target.value;
+  renderWardrobe();
+});
+
+function sortItems(list) {
+  const arr = [...list];
+  switch (activeSortOption) {
+    case "wear-desc":
+      arr.sort((a, b) => wearCountFor(b.id) - wearCountFor(a.id));
+      break;
+    case "wear-asc":
+      arr.sort((a, b) => wearCountFor(a.id) - wearCountFor(b.id));
+      break;
+    case "year-desc":
+      arr.sort((a, b) => (b.yearBought || 0) - (a.yearBought || 0));
+      break;
+    case "year-asc":
+      arr.sort((a, b) => (a.yearBought || 9999) - (b.yearBought || 9999));
+      break;
+    case "price-desc":
+      arr.sort((a, b) => (b.price || 0) - (a.price || 0));
+      break;
+    default:
+      break;
+  }
+  return arr;
+}
 
 function renderWardrobeFilters() {
   const wrap = document.getElementById("wardrobe-filters");
@@ -115,9 +145,10 @@ function renderWardrobe() {
   const grid = document.getElementById("wardrobe-grid");
   const emptyNote = document.getElementById("wardrobe-empty");
 
-  const filtered = activeCategoryFilter
+  const filteredByCategory = activeCategoryFilter
     ? items.filter((i) => i.category === activeCategoryFilter)
     : items;
+  const filtered = sortItems(filteredByCategory);
 
   if (filtered.length === 0) {
     grid.innerHTML = "";
@@ -169,6 +200,11 @@ function openViewModal(itemId) {
     ? item.occasions.map((o) => `<span class="view-chip">${escapeHtml(o)}</span>`).join("")
     : `<span class="view-chip is-muted">Chưa gắn dịp nào</span>`;
 
+  const outfitImgs = item.outfitImages || (item.outfitImage ? [item.outfitImage] : []);
+  const outfitGalleryHtml = outfitImgs
+    .map((src, i) => `<img class="view-outfit-img" src="${escapeAttr(src)}" alt="Gợi ý phối đồ ${i + 1} cho ${escapeAttr(item.name)}" />`)
+    .join("");
+
   document.getElementById("view-modal-body").innerHTML = `
     ${img}
     <div class="view-cat">${CATEGORY_LABEL[item.category] || item.category}</div>
@@ -177,11 +213,13 @@ function openViewModal(itemId) {
       <div><span class="view-label">Thương hiệu</span><span class="view-value">${escapeHtml(item.brand || "—")}</span></div>
       <div><span class="view-label">Kích cỡ</span><span class="view-value">${escapeHtml(item.size || "—")}</span></div>
       <div><span class="view-label">Giá đã mua</span><span class="view-value">${item.price ? formatVND(item.price) : "—"}</span></div>
+      <div><span class="view-label">Năm mua</span><span class="view-value">${item.yearBought || "—"}</span></div>
       <div><span class="view-label">Màu chủ đạo</span><span class="view-value">${escapeHtml(item.color || "—")}</span></div>
       <div><span class="view-label">Mùa phù hợp</span><span class="view-value">${escapeHtml(item.season || "—")}</span></div>
       <div><span class="view-label">Số lần đã mặc</span><span class="view-value">${wc} lần${last ? ` · gần nhất ${formatDate(last)}` : ""}</span></div>
     </div>
     <div class="view-occasions">${occasionsHtml}</div>
+    ${outfitImgs.length ? `<div class="view-outfit-suggestion"><span class="view-label">Gợi ý phối đồ (${outfitImgs.length} ảnh)</span><div class="view-outfit-gallery">${outfitGalleryHtml}</div></div>` : ""}
     ${item.notes ? `<div class="view-notes"><span class="view-label">Ghi chú</span><p>${escapeHtml(item.notes)}</p></div>` : ""}
   `;
   viewModalBackdrop.hidden = false;
@@ -212,6 +250,63 @@ document.getElementById("btn-view-delete").addEventListener("click", () => {
 /* ---------- Item modal (thêm / sửa) ---------- */
 const modalBackdrop = document.getElementById("item-modal-backdrop");
 const itemForm = document.getElementById("item-form");
+let currentOutfitImages = []; // mảng link URL / base64 data URI cho item hiện tại
+
+const outfitImageUrlInput = document.getElementById("item-outfit-image-url");
+const outfitImageFileInput = document.getElementById("item-outfit-image-file");
+const outfitImageGallery = document.getElementById("outfit-image-gallery");
+const btnAddOutfitUrl = document.getElementById("btn-add-outfit-url");
+
+function renderOutfitGallery() {
+  outfitImageGallery.innerHTML = currentOutfitImages
+    .map(
+      (src, idx) => `
+      <div class="image-gallery-item">
+        <img src="${escapeAttr(src)}" alt="Ảnh gợi ý phối đồ ${idx + 1}" />
+        <button type="button" data-idx="${idx}" title="Xóa ảnh này">✕</button>
+      </div>`
+    )
+    .join("");
+  outfitImageGallery.querySelectorAll("button").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      currentOutfitImages.splice(Number(btn.dataset.idx), 1);
+      renderOutfitGallery();
+    });
+  });
+}
+
+function addOutfitImage(src) {
+  if (!src) return;
+  currentOutfitImages.push(src);
+  renderOutfitGallery();
+}
+
+btnAddOutfitUrl.addEventListener("click", () => {
+  const val = outfitImageUrlInput.value.trim();
+  if (!val) return;
+  addOutfitImage(val);
+  outfitImageUrlInput.value = "";
+});
+outfitImageUrlInput.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") {
+    e.preventDefault();
+    btnAddOutfitUrl.click();
+  }
+});
+
+outfitImageFileInput.addEventListener("change", () => {
+  const files = Array.from(outfitImageFileInput.files || []);
+  files.forEach((file) => {
+    if (!file.type.startsWith("image/")) return;
+    if (file.size > 3 * 1024 * 1024) {
+      if (!confirm(`Ảnh "${file.name}" khá nặng (>3MB), có thể làm đầy bộ nhớ trình duyệt nhanh hơn. Vẫn thêm ảnh này?`)) return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => addOutfitImage(reader.result);
+    reader.readAsDataURL(file);
+  });
+  outfitImageFileInput.value = "";
+});
 
 document.getElementById("btn-add-item").addEventListener("click", () => openItemModal(null));
 document.getElementById("btn-close-modal").addEventListener("click", closeItemModal);
@@ -227,6 +322,8 @@ function openItemModal(itemId) {
   itemForm.reset();
   document.querySelectorAll('#item-occasions input').forEach((c) => (c.checked = false));
   document.getElementById("btn-delete-item").hidden = true;
+  currentOutfitImages = [];
+  renderOutfitGallery();
 
   if (itemId) {
     const item = items.find((i) => i.id === itemId);
@@ -238,6 +335,7 @@ function openItemModal(itemId) {
     document.getElementById("item-brand").value = item.brand || "";
     document.getElementById("item-size").value = item.size || "";
     document.getElementById("item-price").value = item.price || "";
+    document.getElementById("item-year").value = item.yearBought || "";
     document.getElementById("item-color").value = item.color || "";
     document.getElementById("item-season").value = item.season || "tất cả";
     document.getElementById("item-image").value = item.image || "";
@@ -246,6 +344,10 @@ function openItemModal(itemId) {
       const cb = document.querySelector(`#item-occasions input[value="${occ}"]`);
       if (cb) cb.checked = true;
     });
+    // Tương thích ngược: nếu item cũ chỉ có 1 ảnh (outfitImage) thay vì mảng
+    const existingImgs = item.outfitImages || (item.outfitImage ? [item.outfitImage] : []);
+    currentOutfitImages = [...existingImgs];
+    renderOutfitGallery();
     document.getElementById("btn-delete-item").hidden = false;
   } else {
     document.getElementById("item-modal-title").textContent = "Thêm món đồ";
@@ -269,10 +371,12 @@ itemForm.addEventListener("submit", (e) => {
     brand: document.getElementById("item-brand").value.trim(),
     size: document.getElementById("item-size").value.trim(),
     price: Number(document.getElementById("item-price").value) || 0,
+    yearBought: Number(document.getElementById("item-year").value) || null,
     color: document.getElementById("item-color").value.trim(),
     season: document.getElementById("item-season").value,
     occasions,
     image: document.getElementById("item-image").value.trim(),
+    outfitImages: [...currentOutfitImages],
     notes: document.getElementById("item-notes").value.trim(),
     dateAdded: (items.find((i) => i.id === id) || {}).dateAdded || todayStr(),
   };
