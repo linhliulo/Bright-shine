@@ -147,9 +147,67 @@ function renderWardrobe() {
     .join("");
 
   grid.querySelectorAll(".cloth-tag").forEach((el) => {
-    el.addEventListener("click", () => openItemModal(el.dataset.id));
+    el.addEventListener("click", () => openViewModal(el.dataset.id));
   });
 }
+
+/* ---------- View modal (chỉ xem chi tiết) ---------- */
+const viewModalBackdrop = document.getElementById("view-modal-backdrop");
+let viewingItemId = null;
+
+function openViewModal(itemId) {
+  const item = items.find((i) => i.id === itemId);
+  if (!item) return;
+  viewingItemId = itemId;
+
+  const wc = wearCountFor(item.id);
+  const last = lastWornFor(item.id);
+  const img = item.image
+    ? `<img class="view-img" src="${escapeAttr(item.image)}" alt="${escapeAttr(item.name)}" onerror="this.outerHTML='<div class=\\'view-img placeholder\\'>Không có ảnh</div>'" />`
+    : `<div class="view-img placeholder">Không có ảnh</div>`;
+  const occasionsHtml = (item.occasions || []).length
+    ? item.occasions.map((o) => `<span class="view-chip">${escapeHtml(o)}</span>`).join("")
+    : `<span class="view-chip is-muted">Chưa gắn dịp nào</span>`;
+
+  document.getElementById("view-modal-body").innerHTML = `
+    ${img}
+    <div class="view-cat">${CATEGORY_LABEL[item.category] || item.category}</div>
+    <h3 class="view-name">${escapeHtml(item.name)}</h3>
+    <div class="view-grid">
+      <div><span class="view-label">Thương hiệu</span><span class="view-value">${escapeHtml(item.brand || "—")}</span></div>
+      <div><span class="view-label">Kích cỡ</span><span class="view-value">${escapeHtml(item.size || "—")}</span></div>
+      <div><span class="view-label">Giá đã mua</span><span class="view-value">${item.price ? formatVND(item.price) : "—"}</span></div>
+      <div><span class="view-label">Màu chủ đạo</span><span class="view-value">${escapeHtml(item.color || "—")}</span></div>
+      <div><span class="view-label">Mùa phù hợp</span><span class="view-value">${escapeHtml(item.season || "—")}</span></div>
+      <div><span class="view-label">Số lần đã mặc</span><span class="view-value">${wc} lần${last ? ` · gần nhất ${formatDate(last)}` : ""}</span></div>
+    </div>
+    <div class="view-occasions">${occasionsHtml}</div>
+    ${item.notes ? `<div class="view-notes"><span class="view-label">Ghi chú</span><p>${escapeHtml(item.notes)}</p></div>` : ""}
+  `;
+  viewModalBackdrop.hidden = false;
+}
+function closeViewModal() {
+  viewModalBackdrop.hidden = true;
+  viewingItemId = null;
+}
+
+document.getElementById("btn-close-view-modal").addEventListener("click", closeViewModal);
+document.getElementById("btn-view-close").addEventListener("click", closeViewModal);
+viewModalBackdrop.addEventListener("click", (e) => { if (e.target === viewModalBackdrop) closeViewModal(); });
+document.getElementById("btn-view-edit").addEventListener("click", () => {
+  const id = viewingItemId;
+  closeViewModal();
+  openItemModal(id);
+});
+document.getElementById("btn-view-delete").addEventListener("click", () => {
+  if (!viewingItemId) return;
+  if (!confirm("Xóa món đồ này khỏi tủ? Lịch sử liên quan vẫn được giữ lại.")) return;
+  items = items.filter((i) => i.id !== viewingItemId);
+  saveItems();
+  closeViewModal();
+  renderWardrobe();
+  showToast("Đã xóa món đồ.");
+});
 
 /* ---------- Item modal (thêm / sửa) ---------- */
 const modalBackdrop = document.getElementById("item-modal-backdrop");
@@ -159,7 +217,11 @@ document.getElementById("btn-add-item").addEventListener("click", () => openItem
 document.getElementById("btn-close-modal").addEventListener("click", closeItemModal);
 document.getElementById("btn-cancel-modal").addEventListener("click", closeItemModal);
 modalBackdrop.addEventListener("click", (e) => { if (e.target === modalBackdrop) closeItemModal(); });
-document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !modalBackdrop.hidden) closeItemModal(); });
+document.addEventListener("keydown", (e) => {
+  if (e.key !== "Escape") return;
+  if (!modalBackdrop.hidden) closeItemModal();
+  if (!viewModalBackdrop.hidden) closeViewModal();
+});
 
 function openItemModal(itemId) {
   itemForm.reset();
