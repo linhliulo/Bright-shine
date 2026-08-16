@@ -219,7 +219,14 @@ function openViewModal(itemId) {
       <div><span class="view-label">Số lần đã mặc</span><span class="view-value">${wc} lần${last ? ` · gần nhất ${formatDate(last)}` : ""}</span></div>
     </div>
     <div class="view-occasions">${occasionsHtml}</div>
-    ${outfitImgs.length ? `<div class="view-outfit-suggestion"><span class="view-label">Gợi ý phối đồ (${outfitImgs.length} ảnh)</span><div class="view-outfit-gallery">${outfitGalleryHtml}</div></div>` : ""}
+    <div class="view-outfit-suggestion">
+      <span class="view-label">Gợi ý phối đồ${outfitImgs.length ? ` (${outfitImgs.length} ảnh)` : ""}</span>
+      ${
+        outfitImgs.length
+          ? `<div class="view-outfit-gallery">${outfitGalleryHtml}</div>`
+          : `<p class="view-outfit-empty">Chưa có ảnh gợi ý phối đồ nào. Bấm "Sửa" bên dưới để thêm.</p>`
+      }
+    </div>
     ${item.notes ? `<div class="view-notes"><span class="view-label">Ghi chú</span><p>${escapeHtml(item.notes)}</p></div>` : ""}
   `;
   viewModalBackdrop.hidden = false;
