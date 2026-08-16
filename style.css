@@ -498,6 +498,9 @@ a{ color: inherit; }
   width: 100%; height: 140px; object-fit: cover; border-radius: 10px;
   border: 1px solid var(--line);
 }
+.view-outfit-empty{
+  font-size: 13.5px; color: #a89d8a; margin: 0; padding: 14px 0;
+}
 
 /* ============ Toast ============ */
 .toast{
