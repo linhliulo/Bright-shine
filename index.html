@@ -220,6 +220,24 @@
   </div>
 </div>
 
+<!-- MODAL: xem chi tiết món đồ -->
+<div class="modal-backdrop" id="view-modal-backdrop" hidden>
+  <div class="modal">
+    <div class="modal-head">
+      <h2>Chi tiết món đồ</h2>
+      <button class="icon-btn" id="btn-close-view-modal">✕</button>
+    </div>
+    <div id="view-modal-body"></div>
+    <div class="modal-actions">
+      <button type="button" class="btn-danger" id="btn-view-delete">Xóa món đồ</button>
+      <div class="modal-actions-right">
+        <button type="button" class="btn-secondary" id="btn-view-close">Đóng</button>
+        <button type="button" class="btn-primary" id="btn-view-edit">Sửa</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script src="app.js"></script>
