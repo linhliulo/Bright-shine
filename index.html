@@ -51,7 +51,20 @@
         <button class="btn-primary" id="btn-add-item">+ Thêm món đồ</button>
       </header>
 
-      <div class="filter-row" id="wardrobe-filters"></div>
+      <div class="wardrobe-toolbar">
+        <div class="filter-row" id="wardrobe-filters"></div>
+        <div class="sort-control">
+          <label for="wardrobe-sort">Sắp xếp</label>
+          <select id="wardrobe-sort">
+            <option value="">Mặc định</option>
+            <option value="wear-desc">Số lần mặc giảm dần</option>
+            <option value="wear-asc">Số lần mặc tăng dần</option>
+            <option value="year-desc">Năm mua mới nhất</option>
+            <option value="year-asc">Năm mua cũ nhất</option>
+            <option value="price-desc">Giá mua cao nhất</option>
+          </select>
+        </div>
+      </div>
 
       <div class="tag-grid" id="wardrobe-grid"></div>
       <p class="empty-note" id="wardrobe-empty" hidden>Chưa có món đồ nào. Bấm "+ Thêm món đồ" để bắt đầu treo đồ lên tủ.</p>
@@ -177,10 +190,14 @@
           <input type="number" id="item-price" min="0" placeholder="vd: 350000" />
         </div>
         <div class="field">
+          <label>Năm mua (yyyy)</label>
+          <input type="number" id="item-year" min="1990" max="2100" step="1" placeholder="vd: 2023" />
+        </div>
+        <div class="field">
           <label>Màu chủ đạo</label>
           <input type="text" id="item-color" placeholder="vd: trắng" />
         </div>
-        <div class="field">
+        <div class="field span-2">
           <label>Mùa phù hợp</label>
           <select id="item-season">
             <option value="tất cả">Tất cả các mùa</option>
@@ -203,6 +220,17 @@
         <div class="field span-2">
           <label>Ảnh (link URL, tùy chọn)</label>
           <input type="url" id="item-image" placeholder="https://…" />
+        </div>
+        <div class="field span-2">
+          <label>Gợi ý phối đồ (có thể thêm nhiều ảnh)</label>
+          <div class="image-input-group">
+            <input type="url" id="item-outfit-image-url" placeholder="Dán link ảnh rồi bấm Thêm…" />
+            <button type="button" class="btn-secondary" id="btn-add-outfit-url">+ Thêm link</button>
+            <span class="image-input-or">hoặc</span>
+            <label class="btn-secondary file-upload-btn" for="item-outfit-image-file">Tải ảnh lên từ máy tính</label>
+            <input type="file" id="item-outfit-image-file" accept="image/*" multiple hidden />
+          </div>
+          <div class="image-gallery" id="outfit-image-gallery"></div>
         </div>
         <div class="field span-2">
           <label>Ghi chú</label>
