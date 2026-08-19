@@ -185,6 +185,19 @@ function renderWardrobe() {
 /* ---------- View modal (chỉ xem chi tiết) ---------- */
 const viewModalBackdrop = document.getElementById("view-modal-backdrop");
 let viewingItemId = null;
+let viewCarouselImages = [];
+let viewCarouselIndex = 0;
+
+function renderCarouselFrame() {
+  if (viewCarouselImages.length === 0) return;
+  const imgEl = document.getElementById("carousel-image");
+  const counterEl = document.getElementById("carousel-counter");
+  if (imgEl) imgEl.src = viewCarouselImages[viewCarouselIndex];
+  if (counterEl) counterEl.textContent = `${viewCarouselIndex + 1} / ${viewCarouselImages.length}`;
+  document.querySelectorAll(".carousel-dot").forEach((dot, i) => {
+    dot.classList.toggle("is-active", i === viewCarouselIndex);
+  });
+}
 
 function openViewModal(itemId) {
   const item = items.find((i) => i.id === itemId);
@@ -193,42 +206,83 @@ function openViewModal(itemId) {
 
   const wc = wearCountFor(item.id);
   const last = lastWornFor(item.id);
-  const img = item.image
-    ? `<img class="view-img" src="${escapeAttr(item.image)}" alt="${escapeAttr(item.name)}" onerror="this.outerHTML='<div class=\\'view-img placeholder\\'>Không có ảnh</div>'" />`
-    : `<div class="view-img placeholder">Không có ảnh</div>`;
+  const mainImg = item.image
+    ? `<img class="view-img-small" src="${escapeAttr(item.image)}" alt="${escapeAttr(item.name)}" onerror="this.outerHTML='<div class=\\'view-img-small placeholder\\'>Không có ảnh</div>'" />`
+    : `<div class="view-img-small placeholder">Không có ảnh</div>`;
   const occasionsHtml = (item.occasions || []).length
     ? item.occasions.map((o) => `<span class="view-chip">${escapeHtml(o)}</span>`).join("")
     : `<span class="view-chip is-muted">Chưa gắn dịp nào</span>`;
 
   const outfitImgs = item.outfitImages || (item.outfitImage ? [item.outfitImage] : []);
-  const outfitGalleryHtml = outfitImgs
-    .map((src, i) => `<img class="view-outfit-img" src="${escapeAttr(src)}" alt="Gợi ý phối đồ ${i + 1} cho ${escapeAttr(item.name)}" />`)
-    .join("");
+  viewCarouselImages = outfitImgs;
+  viewCarouselIndex = 0;
+
+  const carouselHtml = outfitImgs.length
+    ? `
+      <div class="carousel">
+        <div class="carousel-frame">
+          <img id="carousel-image" class="carousel-image" src="${escapeAttr(outfitImgs[0])}" alt="Gợi ý phối đồ cho ${escapeAttr(item.name)}" />
+          ${
+            outfitImgs.length > 1
+              ? `
+            <button type="button" class="carousel-nav carousel-nav-prev" id="btn-carousel-prev" aria-label="Ảnh trước">‹</button>
+            <button type="button" class="carousel-nav carousel-nav-next" id="btn-carousel-next" aria-label="Ảnh sau">›</button>
+            <span class="carousel-counter" id="carousel-counter">1 / ${outfitImgs.length}</span>`
+              : ""
+          }
+        </div>
+        ${
+          outfitImgs.length > 1
+            ? `<div class="carousel-dots" id="carousel-dots">
+            ${outfitImgs.map((_, i) => `<button type="button" class="carousel-dot ${i === 0 ? "is-active" : ""}" data-idx="${i}" aria-label="Xem ảnh ${i + 1}"></button>`).join("")}
+          </div>`
+            : ""
+        }
+      </div>`
+    : `<div class="carousel-empty">Chưa có ảnh gợi ý phối đồ nào.<br>Bấm "Sửa" bên dưới để thêm.</div>`;
 
   document.getElementById("view-modal-body").innerHTML = `
-    ${img}
-    <div class="view-cat">${CATEGORY_LABEL[item.category] || item.category}</div>
-    <h3 class="view-name">${escapeHtml(item.name)}</h3>
-    <div class="view-grid">
-      <div><span class="view-label">Thương hiệu</span><span class="view-value">${escapeHtml(item.brand || "—")}</span></div>
-      <div><span class="view-label">Kích cỡ</span><span class="view-value">${escapeHtml(item.size || "—")}</span></div>
-      <div><span class="view-label">Giá đã mua</span><span class="view-value">${item.price ? formatVND(item.price) : "—"}</span></div>
-      <div><span class="view-label">Năm mua</span><span class="view-value">${item.yearBought || "—"}</span></div>
-      <div><span class="view-label">Màu chủ đạo</span><span class="view-value">${escapeHtml(item.color || "—")}</span></div>
-      <div><span class="view-label">Mùa phù hợp</span><span class="view-value">${escapeHtml(item.season || "—")}</span></div>
-      <div><span class="view-label">Số lần đã mặc</span><span class="view-value">${wc} lần${last ? ` · gần nhất ${formatDate(last)}` : ""}</span></div>
+    <div class="detail-layout">
+      <div class="detail-left">
+        ${mainImg}
+        <div class="view-cat">${CATEGORY_LABEL[item.category] || item.category}</div>
+        <h3 class="view-name">${escapeHtml(item.name)}</h3>
+        <div class="view-grid">
+          <div><span class="view-label">Thương hiệu</span><span class="view-value">${escapeHtml(item.brand || "—")}</span></div>
+          <div><span class="view-label">Kích cỡ</span><span class="view-value">${escapeHtml(item.size || "—")}</span></div>
+          <div><span class="view-label">Giá đã mua</span><span class="view-value">${item.price ? formatVND(item.price) : "—"}</span></div>
+          <div><span class="view-label">Năm mua</span><span class="view-value">${item.yearBought || "—"}</span></div>
+          <div><span class="view-label">Màu chủ đạo</span><span class="view-value">${escapeHtml(item.color || "—")}</span></div>
+          <div><span class="view-label">Mùa phù hợp</span><span class="view-value">${escapeHtml(item.season || "—")}</span></div>
+          <div><span class="view-label">Số lần đã mặc</span><span class="view-value">${wc} lần${last ? ` · gần nhất ${formatDate(last)}` : ""}</span></div>
+        </div>
+        <div class="view-occasions">${occasionsHtml}</div>
+        ${item.notes ? `<div class="view-notes"><span class="view-label">Ghi chú</span><p>${escapeHtml(item.notes)}</p></div>` : ""}
+      </div>
+      <div class="detail-right">
+        <span class="view-label">Gợi ý phối đồ${outfitImgs.length ? ` (${outfitImgs.length} ảnh)` : ""}</span>
+        ${carouselHtml}
+      </div>
     </div>
-    <div class="view-occasions">${occasionsHtml}</div>
-    <div class="view-outfit-suggestion">
-      <span class="view-label">Gợi ý phối đồ${outfitImgs.length ? ` (${outfitImgs.length} ảnh)` : ""}</span>
-      ${
-        outfitImgs.length
-          ? `<div class="view-outfit-gallery">${outfitGalleryHtml}</div>`
-          : `<p class="view-outfit-empty">Chưa có ảnh gợi ý phối đồ nào. Bấm "Sửa" bên dưới để thêm.</p>`
-      }
-    </div>
-    ${item.notes ? `<div class="view-notes"><span class="view-label">Ghi chú</span><p>${escapeHtml(item.notes)}</p></div>` : ""}
   `;
+
+  if (outfitImgs.length > 1) {
+    document.getElementById("btn-carousel-prev").addEventListener("click", () => {
+      viewCarouselIndex = (viewCarouselIndex - 1 + viewCarouselImages.length) % viewCarouselImages.length;
+      renderCarouselFrame();
+    });
+    document.getElementById("btn-carousel-next").addEventListener("click", () => {
+      viewCarouselIndex = (viewCarouselIndex + 1) % viewCarouselImages.length;
+      renderCarouselFrame();
+    });
+    document.querySelectorAll(".carousel-dot").forEach((dot) => {
+      dot.addEventListener("click", () => {
+        viewCarouselIndex = Number(dot.dataset.idx);
+        renderCarouselFrame();
+      });
+    });
+  }
+
   viewModalBackdrop.hidden = false;
 }
 function closeViewModal() {
@@ -323,6 +377,16 @@ document.addEventListener("keydown", (e) => {
   if (e.key !== "Escape") return;
   if (!modalBackdrop.hidden) closeItemModal();
   if (!viewModalBackdrop.hidden) closeViewModal();
+});
+document.addEventListener("keydown", (e) => {
+  if (viewModalBackdrop.hidden || viewCarouselImages.length <= 1) return;
+  if (e.key === "ArrowLeft") {
+    viewCarouselIndex = (viewCarouselIndex - 1 + viewCarouselImages.length) % viewCarouselImages.length;
+    renderCarouselFrame();
+  } else if (e.key === "ArrowRight") {
+    viewCarouselIndex = (viewCarouselIndex + 1) % viewCarouselImages.length;
+    renderCarouselFrame();
+  }
 });
 
 function openItemModal(itemId) {
