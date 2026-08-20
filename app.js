@@ -18,10 +18,18 @@ const CATEGORY_LABEL = {
   "phụ kiện": "Phụ kiện",
 };
 
+const SEASON_LABEL = { "xuan-ha": "Xuân - Hè", "thu-dong": "Thu - Đông", "moi-luc": "Mọi lúc" };
+
+// Chuẩn hoá giá trị mùa: tương thích ngược với dữ liệu cũ (xuân/hạ/thu/đông/tất cả)
+function normalizeSeason(value) {
+  if (value === "xuân" || value === "hạ" || value === "xuan-ha") return "xuan-ha";
+  if (value === "thu" || value === "đông" || value === "thu-dong") return "thu-dong";
+  return "moi-luc";
+}
+
 /* ---------- State ---------- */
 let items = loadItems();
 let history = loadHistory();
-let currentOutfit = null; // { items: [ids] }
 
 /* ---------- Storage helpers ---------- */
 function loadItems() {
@@ -74,6 +82,7 @@ function switchView(view) {
   document.querySelectorAll(".rail-tab").forEach((b) => b.classList.toggle("is-active", b.dataset.view === view));
   document.querySelectorAll(".view").forEach((v) => v.classList.toggle("is-active", v.id === `view-${view}`));
   if (view === "wardrobe") renderWardrobe();
+  if (view === "outfit") renderOutfitCategories();
   if (view === "history") renderHistory();
   if (view === "reports") renderReports();
 }
@@ -253,7 +262,7 @@ function openViewModal(itemId) {
           <div><span class="view-label">Giá đã mua</span><span class="view-value">${item.price ? formatVND(item.price) : "—"}</span></div>
           <div><span class="view-label">Năm mua</span><span class="view-value">${item.yearBought || "—"}</span></div>
           <div><span class="view-label">Màu chủ đạo</span><span class="view-value">${escapeHtml(item.color || "—")}</span></div>
-          <div><span class="view-label">Mùa phù hợp</span><span class="view-value">${escapeHtml(item.season || "—")}</span></div>
+          <div><span class="view-label">Mùa phù hợp</span><span class="view-value">${SEASON_LABEL[normalizeSeason(item.season)]}</span></div>
           <div><span class="view-label">Số lần đã mặc</span><span class="view-value">${wc} lần${last ? ` · gần nhất ${formatDate(last)}` : ""}</span></div>
         </div>
         <div class="view-occasions">${occasionsHtml}</div>
@@ -311,7 +320,58 @@ document.getElementById("btn-view-delete").addEventListener("click", () => {
 /* ---------- Item modal (thêm / sửa) ---------- */
 const modalBackdrop = document.getElementById("item-modal-backdrop");
 const itemForm = document.getElementById("item-form");
+let currentMainImage = ""; // ảnh chính: link URL hoặc base64 data URI
 let currentOutfitImages = []; // mảng link URL / base64 data URI cho item hiện tại
+
+const mainImageUrlInput = document.getElementById("item-image");
+const mainImageFileInput = document.getElementById("item-image-file");
+const mainImagePreview = document.getElementById("main-image-preview");
+
+function renderMainImagePreview() {
+  mainImagePreview.innerHTML = currentMainImage
+    ? `<div class="image-gallery-item">
+        <img src="${escapeAttr(currentMainImage)}" alt="Ảnh chính món đồ" />
+        <button type="button" id="btn-remove-main-image" title="Xóa ảnh này">✕</button>
+      </div>`
+    : "";
+  const btn = document.getElementById("btn-remove-main-image");
+  if (btn) {
+    btn.addEventListener("click", () => {
+      currentMainImage = "";
+      mainImageUrlInput.value = "";
+      mainImageFileInput.value = "";
+      renderMainImagePreview();
+    });
+  }
+}
+
+mainImageUrlInput.addEventListener("input", () => {
+  currentMainImage = mainImageUrlInput.value.trim();
+  renderMainImagePreview();
+});
+
+mainImageFileInput.addEventListener("change", () => {
+  const file = mainImageFileInput.files[0];
+  if (!file) return;
+  if (!file.type.startsWith("image/")) {
+    alert("Vui lòng chọn một file ảnh (jpg, png, webp…).");
+    mainImageFileInput.value = "";
+    return;
+  }
+  if (file.size > 3 * 1024 * 1024) {
+    if (!confirm(`Ảnh "${file.name}" khá nặng (>3MB), có thể làm đầy bộ nhớ trình duyệt nhanh hơn. Vẫn dùng ảnh này?`)) {
+      mainImageFileInput.value = "";
+      return;
+    }
+  }
+  const reader = new FileReader();
+  reader.onload = () => {
+    mainImageUrlInput.value = "";
+    currentMainImage = reader.result;
+    renderMainImagePreview();
+  };
+  reader.readAsDataURL(file);
+});
 
 const outfitImageUrlInput = document.getElementById("item-outfit-image-url");
 const outfitImageFileInput = document.getElementById("item-outfit-image-file");
@@ -393,6 +453,8 @@ function openItemModal(itemId) {
   itemForm.reset();
   document.querySelectorAll('#item-occasions input').forEach((c) => (c.checked = false));
   document.getElementById("btn-delete-item").hidden = true;
+  currentMainImage = "";
+  renderMainImagePreview();
   currentOutfitImages = [];
   renderOutfitGallery();
 
@@ -408,13 +470,17 @@ function openItemModal(itemId) {
     document.getElementById("item-price").value = item.price || "";
     document.getElementById("item-year").value = item.yearBought || "";
     document.getElementById("item-color").value = item.color || "";
-    document.getElementById("item-season").value = item.season || "tất cả";
-    document.getElementById("item-image").value = item.image || "";
+    document.getElementById("item-season").value = normalizeSeason(item.season);
     document.getElementById("item-notes").value = item.notes || "";
     (item.occasions || []).forEach((occ) => {
       const cb = document.querySelector(`#item-occasions input[value="${occ}"]`);
       if (cb) cb.checked = true;
     });
+    if (item.image) {
+      currentMainImage = item.image;
+      if (!item.image.startsWith("data:")) mainImageUrlInput.value = item.image;
+      renderMainImagePreview();
+    }
     // Tương thích ngược: nếu item cũ chỉ có 1 ảnh (outfitImage) thay vì mảng
     const existingImgs = item.outfitImages || (item.outfitImage ? [item.outfitImage] : []);
     currentOutfitImages = [...existingImgs];
@@ -446,7 +512,7 @@ itemForm.addEventListener("submit", (e) => {
     color: document.getElementById("item-color").value.trim(),
     season: document.getElementById("item-season").value,
     occasions,
-    image: document.getElementById("item-image").value.trim(),
+    image: currentMainImage,
     outfitImages: [...currentOutfitImages],
     notes: document.getElementById("item-notes").value.trim(),
     dateAdded: (items.find((i) => i.id === id) || {}).dateAdded || todayStr(),
@@ -474,102 +540,214 @@ document.getElementById("btn-delete-item").addEventListener("click", () => {
 });
 
 /* ==========================================================
-   OUTFIT VIEW — gợi ý phối đồ
+   OUTFIT VIEW — duyệt theo danh mục, lọc dần, chọn & xác nhận
    ========================================================== */
-document.getElementById("btn-generate-outfit").addEventListener("click", generateOutfit);
+const OUTFIT_PURPOSE_OPTIONS = [
+  { value: "", label: "Bất kỳ" },
+  { value: "đi làm", label: "Đi làm" },
+  { value: "đi chơi", label: "Đi chơi" },
+  { value: "dự tiệc", label: "Dự tiệc" },
+  { value: "ở nhà", label: "Mặc nhà" },
+  { value: "thể thao", label: "Thể thao" },
+];
+const OUTFIT_SEASON_OPTIONS = [
+  { value: "", label: "Bất kỳ" },
+  { value: "xuan-ha", label: "Xuân - Hè" },
+  { value: "thu-dong", label: "Thu - Đông" },
+  { value: "moi-luc", label: "Mọi lúc" },
+];
+const OUTFIT_COLOR_OPTIONS = [
+  { value: "", label: "Bất kỳ" },
+  { value: "đen", label: "Đen" },
+  { value: "trắng", label: "Trắng" },
+  { value: "xám", label: "Xám" },
+  { value: "be", label: "Be" },
+  { value: "nâu", label: "Nâu" },
+  { value: "xanh dương", label: "Xanh dương" },
+  { value: "xanh lá", label: "Xanh lá" },
+  { value: "tím", label: "Tím" },
+  { value: "đỏ", label: "Đỏ" },
+  { value: "hồng", label: "Hồng" },
+  { value: "vàng", label: "Vàng" },
+];
 
-function generateOutfit() {
-  const season = document.getElementById("filter-season").value;
-  const occasion = document.getElementById("filter-occasion").value;
-  const color = document.getElementById("filter-color").value.trim().toLowerCase();
+let outfitSelection = {}; // { categoryKey: itemId } — món đang được pick theo từng danh mục
+let outfitCategoryState = {}; // { categoryKey: { index, purpose, season, color } }
 
-  const matches = (item) => {
-    if (season && item.season !== "tất cả" && item.season !== season) return false;
-    if (occasion && !(item.occasions || []).includes(occasion)) return false;
-    if (color && !(item.color || "").toLowerCase().includes(color)) return false;
-    return true;
-  };
-
-  const pool = items.filter(matches);
-
-  const dresses = pool.filter((i) => i.category === "váy/đầm");
-  const tops = pool.filter((i) => i.category === "áo thun" || i.category === "áo sơ mi");
-  const bottoms = pool.filter((i) => i.category === "quần" || i.category === "chân váy");
-  const shoes = pool.filter((i) => i.category === "giày");
-  const outerwear = pool.filter((i) => i.category === "áo khoác");
-  const accessories = pool.filter((i) => i.category === "phụ kiện");
-
-  const chosen = [];
-  // Ưu tiên: hoặc (đầm) hoặc (áo + quần)
-  const useDress = dresses.length > 0 && (Math.random() < 0.5 || tops.length === 0 || bottoms.length === 0);
-  if (useDress && dresses.length > 0) {
-    chosen.push(pickRandom(dresses));
-  } else {
-    if (tops.length > 0) chosen.push(pickRandom(tops));
-    if (bottoms.length > 0) chosen.push(pickRandom(bottoms));
-  }
-  if (shoes.length > 0) chosen.push(pickRandom(shoes));
-  if ((season === "thu" || season === "đông") && outerwear.length > 0) chosen.push(pickRandom(outerwear));
-  else if (Math.random() < 0.4 && outerwear.length > 0) chosen.push(pickRandom(outerwear));
-  if (Math.random() < 0.6 && accessories.length > 0) chosen.push(pickRandom(accessories));
-
-  currentOutfit = chosen.length > 0 ? { items: chosen.map((c) => c.id) } : null;
-  renderOutfitResult(chosen, pool.length === 0);
+function itemMatchesPurpose(item, purpose) {
+  if (!purpose) return true;
+  return (item.occasions || []).includes(purpose);
+}
+function itemMatchesSeason(item, season) {
+  if (!season) return true;
+  const s = normalizeSeason(item.season);
+  if (season === "moi-luc") return s === "moi-luc";
+  return s === season || s === "moi-luc";
+}
+function itemMatchesColor(item, color) {
+  if (!color) return true;
+  return (item.color || "").toLowerCase().includes(color);
 }
 
-function pickRandom(arr) {
-  return arr[Math.floor(Math.random() * arr.length)];
+// Lọc dần theo thứ tự ưu tiên: mục đích > mùa > màu.
+// Nếu bộ lọc đầy đủ không ra kết quả, nới lỏng dần từ tiêu chí thấp ưu tiên nhất (màu) trở lên.
+function getCascadedItems(categoryItems, state) {
+  const { purpose, season, color } = state;
+  const full = categoryItems.filter((i) => itemMatchesPurpose(i, purpose) && itemMatchesSeason(i, season) && itemMatchesColor(i, color));
+  if (full.length) return { list: full, relaxed: null };
+
+  const noColor = categoryItems.filter((i) => itemMatchesPurpose(i, purpose) && itemMatchesSeason(i, season));
+  if (noColor.length && color) return { list: noColor, relaxed: "màu" };
+
+  const noSeason = categoryItems.filter((i) => itemMatchesPurpose(i, purpose));
+  if (noSeason.length && (season || color)) return { list: noSeason, relaxed: "mùa" };
+
+  if (categoryItems.length && purpose) return { list: categoryItems, relaxed: "mục đích" };
+
+  return { list: categoryItems, relaxed: null };
 }
 
-function renderOutfitResult(chosen, poolEmpty) {
-  const wrap = document.getElementById("outfit-result");
-  if (items.length === 0) {
-    wrap.innerHTML = `<p class="empty-note">Tủ đồ đang trống. Hãy thêm vài món ở tab "Tủ đồ" trước đã.</p>`;
-    return;
-  }
-  if (poolEmpty || chosen.length === 0) {
-    wrap.innerHTML = `<p class="warn-note">Không tìm thấy món đồ nào khớp với bộ lọc hiện tại. Hãy thử nới lỏng mùa / dịp / màu.</p>`;
-    return;
+function renderOutfitCategories() {
+  const container = document.getElementById("outfit-category-list");
+  const categories = Object.keys(CATEGORY_LABEL);
+  container.innerHTML = categories.map((cat) => renderOutfitCategoryBlock(cat)).join("");
+  categories.forEach((cat) => attachOutfitCategoryEvents(cat));
+  updateOutfitConfirmSummary();
+}
+
+function renderOutfitCategoryBlock(cat) {
+  if (!outfitCategoryState[cat]) outfitCategoryState[cat] = { index: 0, purpose: "", season: "", color: "" };
+  const state = outfitCategoryState[cat];
+  const categoryItems = items.filter((i) => i.category === cat);
+
+  if (categoryItems.length === 0) {
+    return `
+      <div class="outfit-category-block is-empty" data-category="${cat}">
+        <div class="outfit-category-head"><h3>${CATEGORY_LABEL[cat]}</h3></div>
+        <p class="empty-note">Chưa có món đồ trong nhóm này.</p>
+      </div>`;
   }
 
-  const itemsHtml = chosen
-    .map((item) => {
-      const img = item.image
-        ? `<img src="${escapeAttr(item.image)}" alt="${escapeAttr(item.name)}" onerror="this.style.display='none'" />`
-        : "";
-      return `
-        <div class="look-item">
+  const { list, relaxed } = getCascadedItems(categoryItems, state);
+  if (state.index >= list.length) state.index = 0;
+  const current = list[state.index];
+  const isSelected = outfitSelection[cat] === current.id;
+
+  const img = current.image
+    ? `<img class="outfit-card-img" src="${escapeAttr(current.image)}" alt="${escapeAttr(current.name)}" onerror="this.outerHTML='<div class=\\'outfit-card-img placeholder\\'>Không có ảnh</div>'" />`
+    : `<div class="outfit-card-img placeholder">Không có ảnh</div>`;
+
+  const optionsHtml = (opts, selected) =>
+    opts.map((o) => `<option value="${o.value}" ${state[selected] === o.value ? "selected" : ""}>${o.label}</option>`).join("");
+
+  return `
+    <div class="outfit-category-block" data-category="${cat}">
+      <div class="outfit-category-head">
+        <h3>${CATEGORY_LABEL[cat]}</h3>
+        <div class="outfit-category-filters">
+          <select class="oc-filter" data-cat="${cat}" data-kind="purpose">${optionsHtml(OUTFIT_PURPOSE_OPTIONS, "purpose")}</select>
+          <select class="oc-filter" data-cat="${cat}" data-kind="season">${optionsHtml(OUTFIT_SEASON_OPTIONS, "season")}</select>
+          <select class="oc-filter" data-cat="${cat}" data-kind="color">${optionsHtml(OUTFIT_COLOR_OPTIONS, "color")}</select>
+        </div>
+      </div>
+      ${relaxed ? `<p class="outfit-relax-note">Không đủ món khớp bộ lọc — đang nới lỏng bớt tiêu chí "${relaxed}".</p>` : ""}
+      <div class="outfit-card-carousel">
+        <button type="button" class="carousel-nav oc-prev" data-cat="${cat}" ${list.length <= 1 ? "disabled" : ""} aria-label="Món trước">‹</button>
+        <div class="outfit-card ${isSelected ? "is-selected" : ""}">
           ${img}
-          <div class="look-item-cat">${CATEGORY_LABEL[item.category] || item.category}</div>
-          <div class="look-item-name">${escapeHtml(item.name)}</div>
-        </div>`;
-    })
-    .join("");
-
-  wrap.innerHTML = `
-    <div class="look-card">
-      <div class="look-title">Gợi ý phối đồ</div>
-      <div class="look-items">${itemsHtml}</div>
-      <div class="look-actions">
-        <button class="btn-primary" id="btn-pick-outfit">Chọn bộ này — ghi vào lịch sử</button>
-        <button class="btn-secondary" id="btn-regenerate">Gợi ý bộ khác</button>
+          <div class="outfit-card-info">
+            <div class="outfit-card-cat">${CATEGORY_LABEL[cat]}</div>
+            <div class="outfit-card-name">${escapeHtml(current.name)}</div>
+            <div class="outfit-card-meta">${escapeHtml(current.brand || "—")} · ${wearCountFor(current.id)} lần mặc</div>
+          </div>
+          ${isSelected ? `<span class="outfit-card-badge">✓ Đã chọn</span>` : ""}
+        </div>
+        <button type="button" class="carousel-nav oc-next" data-cat="${cat}" ${list.length <= 1 ? "disabled" : ""} aria-label="Món sau">›</button>
+      </div>
+      <div class="outfit-card-footer">
+        <span class="outfit-card-counter">${state.index + 1} / ${list.length}</span>
+        <button type="button" class="btn-secondary oc-toggle-select" data-cat="${cat}" data-item-id="${current.id}">${isSelected ? "Bỏ chọn" : "Chọn món này"}</button>
       </div>
     </div>`;
-
-  document.getElementById("btn-pick-outfit").addEventListener("click", pickCurrentOutfit);
-  document.getElementById("btn-regenerate").addEventListener("click", generateOutfit);
 }
 
-function pickCurrentOutfit() {
-  if (!currentOutfit) return;
-  history.push({
-    id: uid(),
-    date: todayStr(),
-    itemIds: currentOutfit.items,
+function rerenderOutfitCategory(cat) {
+  const block = document.querySelector(`.outfit-category-block[data-category="${cat}"]`);
+  if (!block) return;
+  const temp = document.createElement("div");
+  temp.innerHTML = renderOutfitCategoryBlock(cat);
+  block.replaceWith(temp.firstElementChild);
+  attachOutfitCategoryEvents(cat);
+}
+
+function moveOutfitCarousel(cat, delta) {
+  const categoryItems = items.filter((i) => i.category === cat);
+  const state = outfitCategoryState[cat];
+  const { list } = getCascadedItems(categoryItems, state);
+  if (list.length === 0) return;
+  state.index = (state.index + delta + list.length) % list.length;
+  rerenderOutfitCategory(cat);
+}
+
+function attachOutfitCategoryEvents(cat) {
+  const block = document.querySelector(`.outfit-category-block[data-category="${cat}"]`);
+  if (!block) return;
+
+  block.querySelectorAll(".oc-filter").forEach((sel) => {
+    sel.addEventListener("change", (e) => {
+      outfitCategoryState[cat][e.target.dataset.kind] = e.target.value;
+      outfitCategoryState[cat].index = 0;
+      rerenderOutfitCategory(cat);
+    });
   });
-  saveHistory();
-  showToast("Đã ghi bộ đồ này vào lịch sử mặc đồ.");
+
+  const prevBtn = block.querySelector(".oc-prev");
+  const nextBtn = block.querySelector(".oc-next");
+  if (prevBtn) prevBtn.addEventListener("click", () => moveOutfitCarousel(cat, -1));
+  if (nextBtn) nextBtn.addEventListener("click", () => moveOutfitCarousel(cat, 1));
+
+  const toggleBtn = block.querySelector(".oc-toggle-select");
+  if (toggleBtn) {
+    toggleBtn.addEventListener("click", () => {
+      const itemId = toggleBtn.dataset.itemId;
+      if (outfitSelection[cat] === itemId) delete outfitSelection[cat];
+      else outfitSelection[cat] = itemId;
+      rerenderOutfitCategory(cat);
+      updateOutfitConfirmSummary();
+    });
+  }
 }
+
+function updateOutfitConfirmSummary() {
+  const summaryEl = document.getElementById("outfit-confirm-summary");
+  const ids = Object.values(outfitSelection);
+  if (ids.length === 0) {
+    summaryEl.textContent = "Chưa chọn món đồ nào.";
+    return;
+  }
+  const names = ids.map((id) => items.find((i) => i.id === id)).filter(Boolean).map((i) => i.name);
+  summaryEl.innerHTML = `<b>${names.length} món đã chọn:</b> ${escapeHtml(names.join(", "))}`;
+}
+
+document.getElementById("btn-clear-outfit-pick").addEventListener("click", () => {
+  outfitSelection = {};
+  renderOutfitCategories();
+});
+
+document.getElementById("btn-confirm-outfit-pick").addEventListener("click", () => {
+  const ids = Object.values(outfitSelection);
+  if (ids.length === 0) {
+    alert("Bạn chưa chọn món đồ nào để phối. Hãy bấm \"Chọn món này\" ở ít nhất 1 danh mục trước.");
+    return;
+  }
+  const dateInput = document.getElementById("outfit-confirm-date");
+  const date = dateInput.value || todayStr();
+  history.push({ id: uid(), date, itemIds: ids });
+  saveHistory();
+  outfitSelection = {};
+  renderOutfitCategories();
+  showToast("Đã ghi bộ đồ này vào lịch sử mặc đồ.");
+});
 
 /* ==========================================================
    HISTORY VIEW
@@ -755,4 +933,5 @@ function escapeAttr(str) {
 /* ==========================================================
    INIT
    ========================================================== */
+document.getElementById("outfit-confirm-date").value = todayStr();
 renderWardrobe();
