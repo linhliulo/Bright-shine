@@ -79,36 +79,19 @@
         </div>
       </header>
 
-      <div class="outfit-controls card">
-        <div class="field">
-          <label>Mùa</label>
-          <select id="filter-season">
-            <option value="">Bất kỳ</option>
-            <option value="xuân">Xuân</option>
-            <option value="hạ">Hạ</option>
-            <option value="thu">Thu</option>
-            <option value="đông">Đông</option>
-          </select>
-        </div>
-        <div class="field">
-          <label>Dịp</label>
-          <select id="filter-occasion">
-            <option value="">Bất kỳ</option>
-            <option value="đi làm">Đi làm</option>
-            <option value="đi chơi">Đi chơi</option>
-            <option value="dự tiệc">Dự tiệc</option>
-            <option value="ở nhà">Ở nhà</option>
-            <option value="thể thao">Thể thao</option>
-          </select>
-        </div>
-        <div class="field">
-          <label>Màu chủ đạo</label>
-          <input type="text" id="filter-color" placeholder="vd: đen, trắng…" />
-        </div>
-        <button class="btn-primary" id="btn-generate-outfit">Gợi ý phối đồ</button>
-      </div>
+      <div id="outfit-category-list"></div>
 
-      <div id="outfit-result"></div>
+      <div class="outfit-confirm-bar card">
+        <div class="outfit-confirm-summary" id="outfit-confirm-summary">Chưa chọn món đồ nào.</div>
+        <div class="outfit-confirm-actions">
+          <div class="field">
+            <label>Ngày mặc</label>
+            <input type="date" id="outfit-confirm-date" />
+          </div>
+          <button class="btn-secondary" id="btn-clear-outfit-pick">Bỏ chọn hết</button>
+          <button class="btn-primary" id="btn-confirm-outfit-pick">Xác nhận phối đồ</button>
+        </div>
+      </div>
     </section>
 
     <!-- VIEW: LỊCH SỬ -->
@@ -200,11 +183,9 @@
         <div class="field span-2">
           <label>Mùa phù hợp</label>
           <select id="item-season">
-            <option value="tất cả">Tất cả các mùa</option>
-            <option value="xuân">Xuân</option>
-            <option value="hạ">Hạ</option>
-            <option value="thu">Thu</option>
-            <option value="đông">Đông</option>
+            <option value="moi-luc">Mọi lúc</option>
+            <option value="xuan-ha">Xuân - Hè</option>
+            <option value="thu-dong">Thu - Đông</option>
           </select>
         </div>
         <div class="field span-2">
@@ -218,8 +199,14 @@
           </div>
         </div>
         <div class="field span-2">
-          <label>Ảnh (link URL, tùy chọn)</label>
-          <input type="url" id="item-image" placeholder="https://…" />
+          <label>Ảnh chính (link URL hoặc tải lên)</label>
+          <div class="image-input-group">
+            <input type="url" id="item-image" placeholder="https://…" />
+            <span class="image-input-or">hoặc</span>
+            <label class="btn-secondary file-upload-btn" for="item-image-file">Tải ảnh lên từ máy tính</label>
+            <input type="file" id="item-image-file" accept="image/*" hidden />
+          </div>
+          <div class="image-gallery" id="main-image-preview"></div>
         </div>
         <div class="field span-2">
           <label>Gợi ý phối đồ (có thể thêm nhiều ảnh)</label>
