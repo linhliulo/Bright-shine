@@ -607,6 +607,8 @@ function getCascadedItems(categoryItems, state) {
   return { list: categoryItems, relaxed: null };
 }
 
+const OUTFIT_PAGE_SIZE = 4;
+
 function renderOutfitCategories() {
   const container = document.getElementById("outfit-category-list");
   const categories = Object.keys(CATEGORY_LABEL);
@@ -616,7 +618,7 @@ function renderOutfitCategories() {
 }
 
 function renderOutfitCategoryBlock(cat) {
-  if (!outfitCategoryState[cat]) outfitCategoryState[cat] = { index: 0, purpose: "", season: "", color: "" };
+  if (!outfitCategoryState[cat]) outfitCategoryState[cat] = { page: 0, purpose: "", season: "", color: "" };
   const state = outfitCategoryState[cat];
   const categoryItems = items.filter((i) => i.category === cat);
 
@@ -629,16 +631,31 @@ function renderOutfitCategoryBlock(cat) {
   }
 
   const { list, relaxed } = getCascadedItems(categoryItems, state);
-  if (state.index >= list.length) state.index = 0;
-  const current = list[state.index];
-  const isSelected = outfitSelection[cat] === current.id;
-
-  const img = current.image
-    ? `<img class="outfit-card-img" src="${escapeAttr(current.image)}" alt="${escapeAttr(current.name)}" onerror="this.outerHTML='<div class=\\'outfit-card-img placeholder\\'>Không có ảnh</div>'" />`
-    : `<div class="outfit-card-img placeholder">Không có ảnh</div>`;
+  const totalPages = Math.max(1, Math.ceil(list.length / OUTFIT_PAGE_SIZE));
+  if (state.page >= totalPages) state.page = 0;
+  const pageItems = list.slice(state.page * OUTFIT_PAGE_SIZE, state.page * OUTFIT_PAGE_SIZE + OUTFIT_PAGE_SIZE);
 
   const optionsHtml = (opts, selected) =>
     opts.map((o) => `<option value="${o.value}" ${state[selected] === o.value ? "selected" : ""}>${o.label}</option>`).join("");
+
+  const cardsHtml = pageItems
+    .map((it) => {
+      const isSelected = outfitSelection[cat] === it.id;
+      const img = it.image
+        ? `<img class="outfit-card-img" src="${escapeAttr(it.image)}" alt="${escapeAttr(it.name)}" onerror="this.outerHTML='<div class=\\'outfit-card-img placeholder\\'>Không có ảnh</div>'" />`
+        : `<div class="outfit-card-img placeholder">Không có ảnh</div>`;
+      return `
+        <div class="outfit-card ${isSelected ? "is-selected" : ""}" data-cat="${cat}" data-item-id="${it.id}">
+          ${img}
+          <div class="outfit-card-info">
+            <div class="outfit-card-cat">${CATEGORY_LABEL[cat]}</div>
+            <div class="outfit-card-name">${escapeHtml(it.name)}</div>
+            <div class="outfit-card-meta">${escapeHtml(it.brand || "—")} · ${wearCountFor(it.id)} lần mặc</div>
+          </div>
+          ${isSelected ? `<span class="outfit-card-badge">✓ Đã chọn</span>` : ""}
+        </div>`;
+    })
+    .join("");
 
   return `
     <div class="outfit-category-block" data-category="${cat}">
@@ -651,23 +668,16 @@ function renderOutfitCategoryBlock(cat) {
         </div>
       </div>
       ${relaxed ? `<p class="outfit-relax-note">Không đủ món khớp bộ lọc — đang nới lỏng bớt tiêu chí "${relaxed}".</p>` : ""}
-      <div class="outfit-card-carousel">
-        <button type="button" class="carousel-nav oc-prev" data-cat="${cat}" ${list.length <= 1 ? "disabled" : ""} aria-label="Món trước">‹</button>
-        <div class="outfit-card ${isSelected ? "is-selected" : ""}">
-          ${img}
-          <div class="outfit-card-info">
-            <div class="outfit-card-cat">${CATEGORY_LABEL[cat]}</div>
-            <div class="outfit-card-name">${escapeHtml(current.name)}</div>
-            <div class="outfit-card-meta">${escapeHtml(current.brand || "—")} · ${wearCountFor(current.id)} lần mặc</div>
-          </div>
-          ${isSelected ? `<span class="outfit-card-badge">✓ Đã chọn</span>` : ""}
-        </div>
-        <button type="button" class="carousel-nav oc-next" data-cat="${cat}" ${list.length <= 1 ? "disabled" : ""} aria-label="Món sau">›</button>
-      </div>
-      <div class="outfit-card-footer">
-        <span class="outfit-card-counter">${state.index + 1} / ${list.length}</span>
-        <button type="button" class="btn-secondary oc-toggle-select" data-cat="${cat}" data-item-id="${current.id}">${isSelected ? "Bỏ chọn" : "Chọn món này"}</button>
-      </div>
+      <div class="outfit-card-grid">${cardsHtml}</div>
+      ${
+        totalPages > 1
+          ? `<div class="outfit-page-nav">
+          <button type="button" class="carousel-nav oc-prev" data-cat="${cat}" aria-label="Trang trước">‹</button>
+          <span class="outfit-page-counter">Trang ${state.page + 1} / ${totalPages}</span>
+          <button type="button" class="carousel-nav oc-next" data-cat="${cat}" aria-label="Trang sau">›</button>
+        </div>`
+          : ""
+      }
     </div>`;
 }
 
@@ -680,12 +690,12 @@ function rerenderOutfitCategory(cat) {
   attachOutfitCategoryEvents(cat);
 }
 
-function moveOutfitCarousel(cat, delta) {
+function moveOutfitPage(cat, delta) {
   const categoryItems = items.filter((i) => i.category === cat);
   const state = outfitCategoryState[cat];
   const { list } = getCascadedItems(categoryItems, state);
-  if (list.length === 0) return;
-  state.index = (state.index + delta + list.length) % list.length;
+  const totalPages = Math.max(1, Math.ceil(list.length / OUTFIT_PAGE_SIZE));
+  state.page = (state.page + delta + totalPages) % totalPages;
   rerenderOutfitCategory(cat);
 }
 
@@ -696,26 +706,25 @@ function attachOutfitCategoryEvents(cat) {
   block.querySelectorAll(".oc-filter").forEach((sel) => {
     sel.addEventListener("change", (e) => {
       outfitCategoryState[cat][e.target.dataset.kind] = e.target.value;
-      outfitCategoryState[cat].index = 0;
+      outfitCategoryState[cat].page = 0;
       rerenderOutfitCategory(cat);
     });
   });
 
   const prevBtn = block.querySelector(".oc-prev");
   const nextBtn = block.querySelector(".oc-next");
-  if (prevBtn) prevBtn.addEventListener("click", () => moveOutfitCarousel(cat, -1));
-  if (nextBtn) nextBtn.addEventListener("click", () => moveOutfitCarousel(cat, 1));
+  if (prevBtn) prevBtn.addEventListener("click", () => moveOutfitPage(cat, -1));
+  if (nextBtn) nextBtn.addEventListener("click", () => moveOutfitPage(cat, 1));
 
-  const toggleBtn = block.querySelector(".oc-toggle-select");
-  if (toggleBtn) {
-    toggleBtn.addEventListener("click", () => {
-      const itemId = toggleBtn.dataset.itemId;
+  block.querySelectorAll(".outfit-card").forEach((card) => {
+    card.addEventListener("click", () => {
+      const itemId = card.dataset.itemId;
       if (outfitSelection[cat] === itemId) delete outfitSelection[cat];
       else outfitSelection[cat] = itemId;
       rerenderOutfitCategory(cat);
       updateOutfitConfirmSummary();
     });
-  }
+  });
 }
 
 function updateOutfitConfirmSummary() {
