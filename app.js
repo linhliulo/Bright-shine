@@ -775,15 +775,26 @@ function renderHistory() {
   const sorted = [...history].sort((a, b) => (a.date < b.date ? 1 : -1));
   list.innerHTML = sorted
     .map((h) => {
-      const names = h.itemIds
-        .map((id) => items.find((i) => i.id === id))
-        .filter(Boolean)
-        .map((i) => i.name);
-      const namesHtml = names.length > 0 ? names.join(", ") : "(các món đồ đã bị xóa)";
+      const its = h.itemIds.map((id) => items.find((i) => i.id === id)).filter(Boolean);
+      const thumbsHtml = its.length
+        ? its
+            .map(
+              (it) => `
+              <div class="history-thumb">
+                ${
+                  it.image
+                    ? `<img src="${escapeAttr(it.image)}" alt="${escapeAttr(it.name)}" onerror="this.outerHTML='<div class=\\'history-thumb-placeholder\\'>Không có ảnh</div>'" />`
+                    : `<div class="history-thumb-placeholder">Không có ảnh</div>`
+                }
+                <span class="history-thumb-name">${escapeHtml(it.name)}</span>
+              </div>`
+            )
+            .join("")
+        : `<p class="history-missing">(các món đồ đã bị xóa)</p>`;
       return `
-        <div class="history-row">
-          <div class="history-date">${formatDate(h.date)}</div>
-          <div class="history-items"><b>${names.length} món:</b> ${escapeHtml(namesHtml)}</div>
+        <div class="history-card">
+          <div class="history-card-date">${formatDate(h.date)} · ${its.length} món</div>
+          <div class="history-thumbs">${thumbsHtml}</div>
         </div>`;
     })
     .join("");
@@ -826,12 +837,20 @@ function renderFreqChart() {
     .map(
       (c) => `
       <div class="freq-row">
+        ${miniThumbHtml(c.item)}
         <div class="freq-label" title="${escapeAttr(c.item.name)}">${escapeHtml(c.item.name)}</div>
         <div class="freq-bar-track"><div class="freq-bar-fill" style="width:${(c.count / max) * 100}%"></div></div>
         <div class="freq-count">${c.count}</div>
       </div>`
     )
     .join("");
+}
+
+// Ảnh thu nhỏ dùng chung cho báo cáo (biểu đồ tần suất, danh sách thanh lý)
+function miniThumbHtml(item) {
+  return item.image
+    ? `<img class="mini-thumb" src="${escapeAttr(item.image)}" alt="${escapeAttr(item.name)}" onerror="this.outerHTML='<div class=\\'mini-thumb placeholder\\'></div>'" />`
+    : `<div class="mini-thumb placeholder"></div>`;
 }
 
 function renderLiquidateList() {
@@ -867,7 +886,8 @@ function renderLiquidateList() {
     .map(
       (c) => `
       <div class="liquidate-row">
-        <span>${escapeHtml(c.item.name)}</span>
+        ${miniThumbHtml(c.item)}
+        <span class="liquidate-name">${escapeHtml(c.item.name)}</span>
         <span class="liquidate-reason">${c.reason}</span>
       </div>`
     )
