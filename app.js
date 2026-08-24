@@ -776,6 +776,10 @@ function formatWeekLabel(weekStartStr) {
   const fmt = (d) => d.toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit" });
   return `Tuần ${fmt(start)} – ${fmt(end)}/${end.getFullYear()}`;
 }
+const WEEKDAY_LABELS = ["Chủ Nhật", "Thứ Hai", "Thứ Ba", "Thứ Tư", "Thứ Năm", "Thứ Sáu", "Thứ Bảy"];
+function getWeekdayLabel(dateStr) {
+  return WEEKDAY_LABELS[new Date(dateStr).getDay()];
+}
 
 function renderHistoryCard(h) {
   const its = h.itemIds.map((id) => items.find((i) => i.id === id)).filter(Boolean);
@@ -796,7 +800,7 @@ function renderHistoryCard(h) {
     : `<p class="history-missing">(các món đồ đã bị xóa)</p>`;
   return `
     <div class="history-card">
-      <div class="history-card-date">${formatDate(h.date)} · ${its.length} món</div>
+      <div class="history-card-date">${getWeekdayLabel(h.date)}, ${formatDate(h.date)} · ${its.length} món</div>
       <div class="history-thumbs">${thumbsHtml}</div>
     </div>`;
 }
@@ -812,14 +816,15 @@ function renderHistory() {
   }
   emptyNote.hidden = true;
 
-  const sorted = [...history].sort((a, b) => (a.date < b.date ? 1 : -1));
-
   const weekMap = new Map();
-  sorted.forEach((h) => {
+  history.forEach((h) => {
     const wk = getWeekStart(h.date);
     if (!weekMap.has(wk)) weekMap.set(wk, []);
     weekMap.get(wk).push(h);
   });
+  // Trong mỗi tuần: xếp theo thứ tự Thứ Hai → Chủ Nhật (ngày tăng dần)
+  weekMap.forEach((arr) => arr.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0)));
+  // Các tuần: tuần gần nhất lên trên
   const weekKeys = [...weekMap.keys()].sort((a, b) => (a < b ? 1 : -1));
 
   list.innerHTML = weekKeys
