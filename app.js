@@ -761,6 +761,46 @@ document.getElementById("btn-confirm-outfit-pick").addEventListener("click", () 
 /* ==========================================================
    HISTORY VIEW
    ========================================================== */
+function getWeekStart(dateStr) {
+  const d = new Date(dateStr);
+  const day = d.getDay(); // 0 = CN … 6 = T7
+  const diff = (day === 0 ? -6 : 1) - day; // lùi về thứ Hai
+  const monday = new Date(d);
+  monday.setDate(d.getDate() + diff);
+  return monday.toISOString().slice(0, 10);
+}
+function formatWeekLabel(weekStartStr) {
+  const start = new Date(weekStartStr);
+  const end = new Date(start);
+  end.setDate(start.getDate() + 6);
+  const fmt = (d) => d.toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit" });
+  return `Tuần ${fmt(start)} – ${fmt(end)}/${end.getFullYear()}`;
+}
+
+function renderHistoryCard(h) {
+  const its = h.itemIds.map((id) => items.find((i) => i.id === id)).filter(Boolean);
+  const thumbsHtml = its.length
+    ? its
+        .map(
+          (it) => `
+          <div class="history-thumb" data-item-id="${it.id}" role="button" tabindex="0">
+            ${
+              it.image
+                ? `<img src="${escapeAttr(it.image)}" alt="${escapeAttr(it.name)}" onerror="this.outerHTML='<div class=\\'history-thumb-placeholder\\'>Không có ảnh</div>'" />`
+                : `<div class="history-thumb-placeholder">Không có ảnh</div>`
+            }
+            <span class="history-thumb-name">${escapeHtml(it.name)}</span>
+          </div>`
+        )
+        .join("")
+    : `<p class="history-missing">(các món đồ đã bị xóa)</p>`;
+  return `
+    <div class="history-card">
+      <div class="history-card-date">${formatDate(h.date)} · ${its.length} món</div>
+      <div class="history-thumbs">${thumbsHtml}</div>
+    </div>`;
+}
+
 function renderHistory() {
   const list = document.getElementById("history-list");
   const emptyNote = document.getElementById("history-empty");
@@ -773,31 +813,29 @@ function renderHistory() {
   emptyNote.hidden = true;
 
   const sorted = [...history].sort((a, b) => (a.date < b.date ? 1 : -1));
-  list.innerHTML = sorted
-    .map((h) => {
-      const its = h.itemIds.map((id) => items.find((i) => i.id === id)).filter(Boolean);
-      const thumbsHtml = its.length
-        ? its
-            .map(
-              (it) => `
-              <div class="history-thumb">
-                ${
-                  it.image
-                    ? `<img src="${escapeAttr(it.image)}" alt="${escapeAttr(it.name)}" onerror="this.outerHTML='<div class=\\'history-thumb-placeholder\\'>Không có ảnh</div>'" />`
-                    : `<div class="history-thumb-placeholder">Không có ảnh</div>`
-                }
-                <span class="history-thumb-name">${escapeHtml(it.name)}</span>
-              </div>`
-            )
-            .join("")
-        : `<p class="history-missing">(các món đồ đã bị xóa)</p>`;
+
+  const weekMap = new Map();
+  sorted.forEach((h) => {
+    const wk = getWeekStart(h.date);
+    if (!weekMap.has(wk)) weekMap.set(wk, []);
+    weekMap.get(wk).push(h);
+  });
+  const weekKeys = [...weekMap.keys()].sort((a, b) => (a < b ? 1 : -1));
+
+  list.innerHTML = weekKeys
+    .map((wk) => {
+      const cardsHtml = weekMap.get(wk).map(renderHistoryCard).join("");
       return `
-        <div class="history-card">
-          <div class="history-card-date">${formatDate(h.date)} · ${its.length} món</div>
-          <div class="history-thumbs">${thumbsHtml}</div>
+        <div class="history-week">
+          <h3 class="history-week-label">${formatWeekLabel(wk)}</h3>
+          <div class="history-week-entries">${cardsHtml}</div>
         </div>`;
     })
     .join("");
+
+  list.querySelectorAll(".history-thumb[data-item-id]").forEach((el) => {
+    el.addEventListener("click", () => openViewModal(el.dataset.itemId));
+  });
 }
 
 /* ==========================================================
