@@ -787,13 +787,12 @@ function renderHistoryCard(h) {
     ? its
         .map(
           (it) => `
-          <div class="history-thumb" data-item-id="${it.id}" role="button" tabindex="0">
+          <div class="history-thumb" data-item-id="${it.id}" role="button" tabindex="0" title="${escapeAttr(it.name)}">
             ${
               it.image
-                ? `<img src="${escapeAttr(it.image)}" alt="${escapeAttr(it.name)}" onerror="this.outerHTML='<div class=\\'history-thumb-placeholder\\'>Không có ảnh</div>'" />`
-                : `<div class="history-thumb-placeholder">Không có ảnh</div>`
+                ? `<img src="${escapeAttr(it.image)}" alt="${escapeAttr(it.name)}" onerror="this.outerHTML='<div class=\\'history-thumb-placeholder\\'></div>'" />`
+                : `<div class="history-thumb-placeholder"></div>`
             }
-            <span class="history-thumb-name">${escapeHtml(it.name)}</span>
           </div>`
         )
         .join("")
