@@ -220,15 +220,15 @@ a{ color: inherit; }
 /* ============ Tag grid (thẻ quần áo kiểu price tag) ============ */
 .tag-grid{
   display:grid;
-  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
-  gap: 16px;
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  gap: 18px;
 }
 .cloth-tag{
   position:relative;
   background: var(--panel);
   border: 1px solid var(--line);
   border-radius: var(--radius);
-  padding: 11px 11px 10px;
+  padding: 13px 13px 12px;
   cursor:pointer;
   transition: transform 0.15s, box-shadow 0.15s;
 }
@@ -236,8 +236,8 @@ a{ color: inherit; }
 .cloth-tag::before{
   content:"";
   position:absolute;
-  top: -8px; left: 16px;
-  width: 12px; height: 12px;
+  top: -8px; left: 18px;
+  width: 13px; height: 13px;
   background: var(--paper);
   border: 2px solid var(--brass);
   border-radius: 50%;
@@ -247,28 +247,28 @@ a{ color: inherit; }
   border-radius: 8px;
   object-fit: cover;
   background: var(--paper-dim);
-  margin-bottom: 8px;
+  margin-bottom: 10px;
   display:block;
 }
 .cloth-tag-img.placeholder{
   aspect-ratio: 3 / 4;
   display:flex; align-items:center; justify-content:center;
-  font-family: var(--font-mono); font-size: 9px; color:#a89d8a;
+  font-family: var(--font-mono); font-size: 10px; color:#a89d8a;
   letter-spacing:0.06em; text-transform:uppercase; text-align:center; padding: 4px;
 }
 .cloth-tag-cat{
   font-family: var(--font-mono);
-  font-size: 9px;
+  font-size: 9.5px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--sage);
-  margin-bottom: 2px;
+  margin-bottom: 3px;
 }
 .cloth-tag-name{
   font-family: var(--font-display);
-  font-size: 13px;
+  font-size: 14.5px;
   font-weight: 600;
-  margin-bottom: 4px;
+  margin-bottom: 5px;
   line-height:1.25;
 }
 .cloth-tag-meta{
@@ -276,9 +276,9 @@ a{ color: inherit; }
   justify-content: space-between;
   align-items:center;
   border-top: 1px dashed var(--line);
-  padding-top: 6px;
-  margin-top: 5px;
-  font-size: 10.5px;
+  padding-top: 7px;
+  margin-top: 6px;
+  font-size: 11px;
   color:#6b6255;
 }
 .cloth-tag-price{
@@ -287,13 +287,13 @@ a{ color: inherit; }
   font-weight:500;
 }
 .wear-badge{
-  position:absolute; top:8px; right:8px;
+  position:absolute; top:9px; right:9px;
   background: var(--brass-light);
   color: #3a2f16;
   font-family: var(--font-mono);
-  font-size: 9px;
+  font-size: 9.5px;
   font-weight:600;
-  padding: 2px 6px;
+  padding: 3px 7px;
   border-radius: 999px;
 }
 
