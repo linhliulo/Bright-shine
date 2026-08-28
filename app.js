@@ -799,7 +799,10 @@ function renderHistoryCard(h) {
     : `<p class="history-missing">(các món đồ đã bị xóa)</p>`;
   return `
     <div class="history-card">
-      <div class="history-card-date">${getWeekdayLabel(h.date)}, ${formatDate(h.date)} · ${its.length} món</div>
+      <div class="history-card-head">
+        <div class="history-card-date">${getWeekdayLabel(h.date)}, ${formatDate(h.date)} · ${its.length} món</div>
+        <button type="button" class="history-delete-btn" data-history-id="${h.id}" title="Xóa lượt phối đồ này">✕</button>
+      </div>
       <div class="history-thumbs">${thumbsHtml}</div>
     </div>`;
 }
@@ -840,6 +843,17 @@ function renderHistory() {
   list.querySelectorAll(".history-thumb[data-item-id]").forEach((el) => {
     el.addEventListener("click", () => openViewModal(el.dataset.itemId));
   });
+  list.querySelectorAll(".history-delete-btn").forEach((btn) => {
+    btn.addEventListener("click", () => deleteHistoryEntry(btn.dataset.historyId));
+  });
+}
+
+function deleteHistoryEntry(historyId) {
+  if (!confirm("Xóa lượt phối đồ này khỏi lịch sử? Số lần mặc của các món liên quan cũng sẽ giảm theo.")) return;
+  history = history.filter((h) => h.id !== historyId);
+  saveHistory();
+  renderHistory();
+  showToast("Đã xóa lượt phối đồ khỏi lịch sử.");
 }
 
 /* ==========================================================
