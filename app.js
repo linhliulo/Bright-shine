@@ -10,6 +10,7 @@ const STORAGE_HISTORY = "tuquanao_history_v1";
 const CATEGORY_LABEL = {
   "áo thun": "Áo thun",
   "áo sơ mi": "Áo sơ mi",
+  "áo len": "Áo len",
   "quần": "Quần",
   "chân váy": "Chân váy",
   "váy/đầm": "Váy/Đầm",
